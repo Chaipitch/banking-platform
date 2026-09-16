@@ -6,5 +6,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <include file="changes/001-initial.xml" relativeToChangelogFile="true"/>
+    <include file="changes/002-create-customers.xml" relativeToChangelogFile="true"/>
+    <include file="changes/003-create-accounts.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

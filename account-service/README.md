@@ -49,14 +49,28 @@ the default `5432`.
 
 - Master changelog: `src/main/resources/db/changelog/db.changelog-master.xml`
 - Individual changes: `src/main/resources/db/changelog/changes/NNN-description.xml`
-- To change the schema, **add a new file** (e.g. `002-create-accounts.xml`) and
+- To change the schema, **add a new file** (e.g. `003-create-accounts.xml`) and
   `<include>` it in the master changelog.
 - **Never edit a changeSet that has already run** — Liquibase checksums each one
   and startup will fail.
-- Hibernate does not manage the schema (`ddl-auto=none`); Liquibase is the only
-  source of schema changes.
+- Hibernate does not change the schema — `ddl-auto=validate` only checks at
+  startup that entities match the tables. Liquibase is the only source of schema
+  changes; if validation fails, the error names the mismatched table/column.
+
+| File | Creates |
+|---|---|
+| `001-initial.xml` | Empty baseline |
+| `002-create-customers.xml` | `customers` |
+| `003-create-accounts.xml` | `accounts` (FK `customer_id` → `customers.id`) |
 
 Applied migrations are recorded in the `databasechangelog` table.
+
+## Tests
+
+```bash
+./mvnw test                     # all tests (contextLoads needs Postgres running)
+./mvnw test -Dtest=AccountTest  # unit tests only — no DB needed
+```
 
 ## Stopping / resetting
 
