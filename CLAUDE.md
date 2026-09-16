@@ -16,14 +16,19 @@ Client → API Gateway → services. Services talk to each other over **gRPC** (
 | `api-gateway` | Routing, JWT validation, rate limiting | — | Spring Cloud Gateway |
 
 ## Tech stack & conventions
-- **Java + Spring Boot 3.x**, Maven (or Gradle — pick one and stay consistent across services)
+- **Java 21 + Spring Boot 4.1**, **Maven** (via `./mvnw` wrapper) — every service uses the same
+- Spring Boot 4 splits auto-configuration into modules — use the `spring-boot-starter-*` artifact (e.g. `spring-boot-starter-liquibase`), not the bare library, or it won't auto-configure
 - **Money is always `BigDecimal`** — never `double`/`float`, anywhere, no exceptions
-- **DB migrations only** — Flyway or Liquibase. No `ddl-auto: update` outside local scratch work
+- **DB migrations only — Liquibase (XML changelogs)** for every Postgres-backed service. Hibernate `ddl-auto` stays `none`/`validate`; no `update` outside local scratch work
+  - Master changelog: `src/main/resources/db/changelog/db.changelog-master.xml`, which `<include>`s files from `changes/`
+  - One file per change, numbered: `changes/NNN-description.xml`
+  - Never edit a changeSet that has already run — add a new one
+- **Pin Docker image versions** (e.g. `postgres:17`) — never `latest`
 - **DTOs at API boundaries** — never expose JPA entities directly in REST/gRPC responses
 - **gRPC contracts** live in a shared `proto/` module — treat `.proto` files as the source of truth, regenerate stubs, don't hand-edit generated code
 - **Kafka topics** follow `banking.<domain>.<event>` naming, e.g. `banking.transactions.completed`
 - **Testcontainers** for integration tests — real Postgres/Kafka/Mongo, not H2 or embedded fakes
-- **Optimistic locking** (`@Version`) on `Account.balance` — concurrent debits must not corrupt balances
+- **Optimistic locking** to protect `Account.balance` — `@Version` goes on a **separate** `Long version` field (never on `balance` itself; Hibernate increments it on every update) so concurrent debits must not corrupt balances
 
 ## Build order (do not skip ahead)
 1. Account Service (REST + Postgres)
@@ -39,13 +44,27 @@ Full task list with requirements and acceptance criteria per task lives in Notio
 
 ## Common commands
 ```bash
-docker-compose up -d          # bring up infra (Postgres, Kafka, Mongo, Redis)
-docker-compose down -v        # tear down + wipe volumes
-./mvnw spring-boot:run         # run a service (from its module directory)
+# from repo root (banking-platform/)
+docker compose up -d           # bring up infra
+docker compose ps              # check containers are "Up"
+docker compose logs <service>  # first stop when a container won't start
+docker compose down            # stop, keep data
+docker compose down -v         # stop + WIPE volumes (all DB data)
+
+# from a service directory (e.g. account-service/)
+./mvnw spring-boot:run         # run the service
 ./mvnw test                    # run tests (Testcontainers will spin up real deps)
+
 grpcurl -plaintext localhost:<port> list   # inspect available gRPC methods
 ```
-*(adjust paths/ports once each service exists — update this section as the project grows)*
+
+## Ports & local services
+| Service | App port | Datastore | Host port → container | DB name |
+|---|---|---|---|---|
+| `account-service` | 4100 | Postgres 17 (`account-service-db`) | 5433 → 5432 | `account_postgres_db` |
+
+Host port 5432 is avoided to prevent clashes with any locally installed Postgres.
+*(add a row as each service is created)*
 
 ## Working agreement
 - This is a learning project. When asked to implement something non-trivial (gRPC concurrency handling, the Saga logic, fraud velocity checks), explain the approach and the trade-offs before or alongside writing code — don't just drop a finished implementation silently.
