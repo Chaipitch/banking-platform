@@ -12,6 +12,13 @@ No local Maven install is needed — use the bundled `./mvnw` wrapper.
 
 ## Run locally
 
+**0. Create your `.env`** (first time only, from the repo root). Docker Compose and
+the app both read DB credentials from it; it is gitignored.
+
+```bash
+cp .env.example .env     # then set POSTGRES_PASSWORD
+```
+
 **1. Start Postgres** (from the repo root, `banking-platform/`):
 
 ```bash
@@ -38,7 +45,7 @@ pending migrations from `src/main/resources/db/changelog/`.
 | Port     | `5433` (host) → `5432` (container) |
 | Database | `account_postgres_db` |
 | User     | `admin`               |
-| Password | `password` (local dev only) |
+| Password | from `POSTGRES_PASSWORD` in `.env` |
 
 JDBC URL: `jdbc:postgresql://localhost:5433/account_postgres_db`
 
