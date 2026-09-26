@@ -3,6 +3,7 @@ package com.pm.accountservice.service;
 import com.pm.accountservice.dto.AccountResponseDTO;
 import com.pm.accountservice.dto.BalanceResponseDTO;
 import com.pm.accountservice.dto.CreateAccountRequestDTO;
+import com.pm.accountservice.exception.DuplicateResourceException;
 import com.pm.accountservice.exception.InvalidCurrencyException;
 import com.pm.accountservice.exception.ResourceNotFoundException;
 import com.pm.accountservice.model.Account;
@@ -14,7 +15,9 @@ import com.pm.accountservice.repository.CustomerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Currency;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -71,5 +74,12 @@ public class AccountService {
 
     private AccountResponseDTO toResponse(Account account) {
         return new AccountResponseDTO(account.getId(), account.getCustomer().getId(), account.getAccountNumber(), account.getBalance(), account.getCurrency().getCurrencyCode(), account.getStatus(), account.getCreatedAt());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AccountResponseDTO> getRelatedAccounts(UUID customerId) {
+        if(!customerRepository.existsById(customerId)) throw new ResourceNotFoundException("Customer not found: " + customerId);
+
+        return accountRepository.findByCustomerId(customerId).stream().map(this::toResponse).toList();
     }
 }

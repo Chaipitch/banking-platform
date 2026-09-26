@@ -1,7 +1,9 @@
 package com.pm.accountservice.controller;
 
+import com.pm.accountservice.dto.AccountResponseDTO;
 import com.pm.accountservice.dto.CreateCustomerRequestDTO;
 import com.pm.accountservice.dto.CustomerResponseDTO;
+import com.pm.accountservice.service.AccountService;
 import com.pm.accountservice.service.CustomerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -9,14 +11,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/customers")
 public class CustomerController {
     private final CustomerService customerService;
+    private final AccountService accountService;
 
-    public CustomerController(CustomerService customerService) {
+    public CustomerController(CustomerService customerService, AccountService accountService) {
         this.customerService = customerService;
+        this.accountService = accountService;
     }
 
     @PostMapping
@@ -29,5 +34,12 @@ public class CustomerController {
     public ResponseEntity<List<CustomerResponseDTO>> getAllCustomers() {
         List<CustomerResponseDTO> customers = customerService.getAllCustomers();
         return ResponseEntity.ok().body(customers);
+    }
+
+    @GetMapping("/{customerId}/accounts")
+    public ResponseEntity<List<AccountResponseDTO>> getRelatedAccounts(@PathVariable UUID customerId) {
+        List<AccountResponseDTO> accounts = accountService.getRelatedAccounts(customerId);
+
+        return ResponseEntity.ok().body(accounts);
     }
 }
